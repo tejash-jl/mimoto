@@ -38,7 +38,7 @@ fileignoreconfig:
 - filename: src/main/java/io/mosip/mimoto/util/Utilities.java
   checksum: 71605c7209583dd3494e6778403ec89fb5f78f00db06c1b9b8512da20621390b
 - filename: src/main/resources/application-local.properties
-  checksum: 4fd09fe56696b8156663da5e06c9c072bddd2007f81a87fdc69ce8f3acdee08b
+  checksum: a76dd4dba5aa664ca8f86f793651275e135eb283fd7ad4a45d1c330addfadb0b
 - filename: src/test/java/io/mosip/mimoto/config/MimotoConfig.java
   checksum: ba189011b924fe58a804281c88a190b9b969d21bc485e03206471f69be1a1b5d
 - filename: src/main/java/io/mosip/mimoto/util/JsonUtil.java

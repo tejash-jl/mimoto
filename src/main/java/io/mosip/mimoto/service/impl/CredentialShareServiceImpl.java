@@ -57,7 +57,7 @@ public class CredentialShareServiceImpl implements CredentialShareService {
 
     public String topic = "CREDENTIAL_STATUS_UPDATE";
 
-    @Autowired
+//    @Autowired
     public WebSubSubscriptionHelper webSubSubscriptionHelper;
 
     @Autowired
