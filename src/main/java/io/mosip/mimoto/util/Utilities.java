@@ -122,9 +122,9 @@ public class Utilities {
 
     private String credentialTemplateHtmlString = null;
 //    uncomment for running mimoto Locally to populate the issuers json
-    public Utilities(@Value("classpath:/wellKnownIssuer/Insurance.json") Resource credentialsSupportedResource,
-                     @Value("classpath:mimoto-issuers-config.json") Resource resource,
-                     @Value("classpath:/templates/CredentialTemplate.html") Resource credentialTemplateResource) throws IOException{
+    public Utilities(@Value("${well_known_path:classpath:/wellKnownIssuer/Insurance.json}") Resource credentialsSupportedResource,
+                     @Value("${issuers_config_path:classpath:mimoto-issuers-config.json}") Resource resource,
+                     @Value("${templates_path:classpath:/templates/CredentialTemplate.html}") Resource credentialTemplateResource) throws IOException{
 
         issuersConfigJsonString = (Files.readString(resource.getFile().toPath()));
         credentialsSupportedJsonString = (Files.readString(credentialsSupportedResource.getFile().toPath()));

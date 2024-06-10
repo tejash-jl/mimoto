@@ -15,6 +15,7 @@ public class VCCredentialProperties {
     private String id;
 
     private String issuanceDate;
+    private String expirationDate;
 
     private VCCredentialResponseProof proof;
 

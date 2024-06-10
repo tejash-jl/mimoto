@@ -1,0 +1,14 @@
+version: "3.9"
+services:
+  mimoto-service:
+    image: tejashjl/mimoto
+    ports:
+      - "8089:8089"
+    volumes:
+      - ./src/main/resources/mimoto-issuers-config.json:/home/mosip/mimoto-issuers-config.json
+      - ./src/main/resources/templates/CredentialTemplate.html:/home/mosip/CredentialTemplate.html
+    environment:
+      - active_profile_env=local
+      - issuers_config_path=file:mimoto-issuers-config.json
+      - well_known_path=file:mimoto-issuers-config.json
+      - templates_path=file:CredentialTemplate.html

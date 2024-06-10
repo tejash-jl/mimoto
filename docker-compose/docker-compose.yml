@@ -1,0 +1,9 @@
+version: "3.9"
+services:
+  mimoto-service:
+    build: ..
+    volumes:
+      - ./mimoto-issuers-config.json:/home/mosip/mimoto-issuers-config.json
+    environment:
+      - active_profile_env=local
+      - issuers_config=file:mimoto-issuers-config.json

@@ -4,30 +4,30 @@
       "credential_issuer": "Sunbird",
       "display": [
         {
-          "name": "Issuer Provider Name",
+          "name": "Education Department",
           "logo": {
-            "url": "https://sunbird.org/images/sunbird-logo-new.png",
+            "url": "https://static.vecteezy.com/system/resources/previews/007/688/840/large_2x/education-logo-free-vector.jpg",
             "alt_text": "an issuer logo"
           },
           "language": "en",
-          "title": "Issuer Provider Name",
-          "description": "Download Credentials using provided details"
+          "title": "Education Department",
+          "description": "Download Education Credentials"
         }
       ],
       "protocol": "OpenId4VCI",
-      "client_id": "${mimoto.oidc.sunbird.partner.clientid}",
-      "client_alias": "esignet-sunbird-partner",
-      "scopes_supported": ["sunbird_rc_insurance_vc_ldp"],
+      "client_id": "3yz7-j3xRzU3SODdoNgSGvO_cD8UijH3AIWRDAg1x-M",
+      "client_alias": "mpartner-default-mimotooidc",
+      "scopes_supported": ["sunbird_rc_education_vc_ldp"],
       "additional_headers": { "Accept": "application/json" },
-      ".well-known": "https://${mosip.esignet.host}/.well-known/openid-credential-issuer?version=v11",
+      ".well-known": "https://bf1b-202-38-183-139.ngrok-free.app/esignet/v1/esignet/vci/.well-known/openid-credential-issuer?version=v11",
       "redirect_uri": "io.mosip.residentapp.inji://oauthredirect",
-      "authorization_endpoint": "https://${mosip.esignet.host}/authorize",
-      "authorization_audience": "https://${mosip.esignet.host}/v1/esignet/oauth/v2/token",
-      "token_endpoint": "https://${mosip.api.public.host}/residentmobileapp/get-token/Sunbird",
-      "proxy_token_endpoint": "https://${mosip.esignet.host}/v1/esignet/oauth/v2/token",
-      "credential_endpoint": "https://${mosip.esignet.host}/v1/esignet/vci/credential",
-      "credential_type": ["VerifiableCredential", "InsuranceCredential"],
-      "credential_audience": "https://${mosip.esignet.host}",
+      "authorization_endpoint": "https://bf1b-202-38-183-139.ngrok-free.app/authorize",
+      "authorization_audience": "https://bf1b-202-38-183-139.ngrok-free.app/esignet/v1/esignet/oauth/v2/token",
+      "token_endpoint": "http://localhost:8089/residentmobileapp/get-token/Sunbird",
+      "proxy_token_endpoint": "https://bf1b-202-38-183-139.ngrok-free.app/esignet/v1/esignet/oauth/v2/token",
+      "credential_endpoint": "https://bf1b-202-38-183-139.ngrok-free.app/esignet/v1/esignet/vci/credential",
+      "credential_type": ["VerifiableCredential", "EducationCredential"],
+      "credential_audience": "https://bf1b-202-38-183-139.ngrok-free.app/esignet",
       "enabled": "true"
     }
   ]
