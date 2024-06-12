@@ -401,7 +401,11 @@
             <scope>test</scope>
         </dependency>
 
-
+        <dependency>
+            <groupId>io.github.ehn-digital-green-development</groupId>
+            <artifactId>base45</artifactId>
+            <version>0.0.3</version>
+        </dependency>
     </dependencies>
 
     <repositories>

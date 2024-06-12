@@ -1,7 +1,12 @@
 package io.mosip.mimoto.service.impl;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.MultiFormatWriter;
+import com.google.zxing.client.j2se.MatrixToImageWriter;
+import com.google.zxing.common.BitMatrix;
 import com.itextpdf.html2pdf.ConverterProperties;
 import com.itextpdf.html2pdf.HtmlConverter;
 import com.itextpdf.html2pdf.resolver.font.DefaultFontProvider;
@@ -9,21 +14,11 @@ import com.itextpdf.kernel.pdf.PdfWriter;
 import io.mosip.kernel.core.logger.spi.Logger;
 import io.mosip.mimoto.dto.IssuerDTO;
 import io.mosip.mimoto.dto.IssuersDTO;
-import io.mosip.mimoto.dto.mimoto.CredentialDisplayResponseDto;
-import io.mosip.mimoto.dto.mimoto.CredentialIssuerWellKnownResponse;
-import io.mosip.mimoto.dto.mimoto.CredentialsSupportedResponse;
-import io.mosip.mimoto.dto.mimoto.IssuerSupportedCredentialsResponse;
-import io.mosip.mimoto.dto.mimoto.VCCredentialDefinition;
-import io.mosip.mimoto.dto.mimoto.VCCredentialRequest;
-import io.mosip.mimoto.dto.mimoto.VCCredentialRequestProof;
-import io.mosip.mimoto.dto.mimoto.VCCredentialResponse;
+import io.mosip.mimoto.dto.mimoto.*;
 import io.mosip.mimoto.exception.ApiNotAccessibleException;
 import io.mosip.mimoto.exception.InvalidIssuerIdException;
 import io.mosip.mimoto.service.IssuersService;
-import io.mosip.mimoto.util.JoseUtil;
-import io.mosip.mimoto.util.LoggerUtil;
-import io.mosip.mimoto.util.RestApiClient;
-import io.mosip.mimoto.util.Utilities;
+import io.mosip.mimoto.util.*;
 import org.apache.commons.lang.StringUtils;
 import org.apache.velocity.VelocityContext;
 import org.apache.velocity.app.Velocity;
@@ -32,24 +27,21 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 
+import javax.validation.Valid;
+import javax.validation.constraints.NotNull;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.security.PublicKey;
 import java.text.ParseException;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.List;
-import java.util.Optional;
-import java.util.Properties;
+import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.Collectors;
+
 
 @Service
 public class IssuersServiceImpl implements IssuersService {
+    public static final int IMAGE_SIZE = 500;
     private final Logger logger = LoggerUtil.getLogger(IssuersServiceImpl.class);
 
     private static final String context = "https://www.w3.org/2018/credentials/v1";
@@ -62,6 +54,9 @@ public class IssuersServiceImpl implements IssuersService {
 
     @Autowired
     private JoseUtil joseUtil;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @Value("${mosip.oidc.p12.filename}")
     private String fileName;
@@ -112,7 +107,6 @@ public class IssuersServiceImpl implements IssuersService {
     }
 
 
-
     @Override
     public IssuerDTO getIssuerConfig(String issuerId) throws ApiNotAccessibleException, IOException {
         IssuerDTO issuerDTO = null;
@@ -153,7 +147,7 @@ public class IssuersServiceImpl implements IssuersService {
             credentialTypesWithAuthorizationEndpoint.setSupportedCredentials(issuerCredentialsSupported);
 
             // Filter Credential supported types with search string
-            if (!StringUtils.isEmpty(search)){
+            if (!StringUtils.isEmpty(search)) {
                 credentialTypesWithAuthorizationEndpoint.setSupportedCredentials(issuerCredentialsSupported
                         .stream()
                         .filter(credentialsSupportedResponse -> credentialsSupportedResponse.getDisplay().stream()
@@ -181,11 +175,30 @@ public class IssuersServiceImpl implements IssuersService {
         logger.debug("VC Credential Response is -> " + vcCredentialResponse);
         if (vcCredentialResponse == null) throw new RuntimeException("VC Credential Issue API not accessible");
         Map<String, Object> credentialProperties = vcCredentialResponse.getCredential().getCredentialSubject();
-        LinkedHashMap<String,Object> displayProperties = new LinkedHashMap<>();
+        LinkedHashMap<String, Object> displayProperties = new LinkedHashMap<>();
+        String base64QRCode = generateBase64QRCode(vcCredentialResponse.getCredential());
         vcPropertiesFromWellKnown.keySet().forEach(vcProperty -> displayProperties.put(vcPropertiesFromWellKnown.get(vcProperty), credentialProperties.get(vcProperty)));
         return getPdfResourceFromVcProperties(displayProperties, textColor, backgroundColor,
                 credentialsSupportedResponse.getDisplay().get(0).getName(),
-                issuerDTO.getDisplay().stream().map(d -> d.getLogo().getUrl()).findFirst().orElse(""));
+                issuerDTO.getDisplay().stream().map(d -> d.getLogo().getUrl()).findFirst().orElse(""),
+                base64QRCode);
+    }
+
+    private String generateBase64QRCode(@Valid @NotNull VCCredentialProperties credential) {
+        try {
+            String data = objectMapper.writeValueAsString(credential);
+            byte[] compressedData = CompressionUtils.compress(data.getBytes());
+            String encodedData = Base45Util.encode(compressedData);
+            BitMatrix matrix = new MultiFormatWriter().encode(encodedData, BarcodeFormat.QR_CODE,
+                    IMAGE_SIZE, IMAGE_SIZE);
+
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            MatrixToImageWriter.writeToStream(matrix, "png", bos);
+            return Base64.getEncoder().encodeToString(bos.toByteArray()); // base64 encode
+        } catch (Exception e) {
+            logger.error("Exception while generating qr code", e);
+        }
+        return "";
     }
 
     private VCCredentialRequest generateVCCredentialRequest(IssuerDTO issuerDTO, CredentialsSupportedResponse credentialsSupportedResponse, String accessToken) throws ParseException {
@@ -209,7 +222,7 @@ public class IssuersServiceImpl implements IssuersService {
 
     private ByteArrayInputStream getPdfResourceFromVcProperties(LinkedHashMap<String, Object> displayProperties, String textColor,
                                                                 String backgroundColor,
-                                                                String credentialSupportedType, String issuerLogoUrl) throws IOException {
+                                                                String credentialSupportedType, String issuerLogoUrl, String base64QRCode) throws IOException {
         Map<String, Object> data = new HashMap<>();
         LinkedHashMap<String, Object> headerProperties = new LinkedHashMap<>();
         LinkedHashMap<String, Object> rowProperties = new LinkedHashMap<>();
@@ -224,16 +237,16 @@ public class IssuersServiceImpl implements IssuersService {
                     }
                 });
 
-        int rowPropertiesCount =  rowProperties.size();
+        int rowPropertiesCount = rowProperties.size();
         data.put("logoUrl", issuerLogoUrl);
         data.put("headerProperties", headerProperties);
         data.put("rowProperties", rowProperties);
         data.put("keyFontColor", textColor);
         data.put("bgColor", backgroundColor);
-        data.put("rowPropertiesMargin", rowPropertiesCount % 2 == 0 ? (rowPropertiesCount/2 -1)*40 : (rowPropertiesCount/2)*40); //for adjusting the height in pdf for dynamic properties
+        data.put("rowPropertiesMargin", rowPropertiesCount % 2 == 0 ? (rowPropertiesCount / 2 - 1) * 40 : (rowPropertiesCount / 2) * 40); //for adjusting the height in pdf for dynamic properties
         data.put("titleName", credentialSupportedType);
-
-        String  credentialTemplate = utilities.getCredentialSupportedTemplateString();
+        data.put("base64QRCode", base64QRCode);
+        String credentialTemplate = utilities.getCredentialSupportedTemplateString();
 
         Properties props = new Properties();
         props.setProperty("resource.loader", "class");

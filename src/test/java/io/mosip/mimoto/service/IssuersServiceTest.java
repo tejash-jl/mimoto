@@ -1,5 +1,6 @@
 package io.mosip.mimoto.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 import io.mosip.mimoto.dto.DisplayDTO;
 import io.mosip.mimoto.dto.IssuerDTO;
@@ -9,21 +10,31 @@ import io.mosip.mimoto.dto.mimoto.*;
 import io.mosip.mimoto.exception.ApiNotAccessibleException;
 import io.mosip.mimoto.exception.InvalidIssuerIdException;
 import io.mosip.mimoto.service.impl.IssuersServiceImpl;
+import io.mosip.mimoto.util.JoseUtil;
 import io.mosip.mimoto.util.RestApiClient;
 import io.mosip.mimoto.util.Utilities;
+import org.apache.commons.io.IOUtils;
 import org.apache.velocity.VelocityContext;
 import org.apache.velocity.app.Velocity;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.springframework.boot.test.context.SpringBootTest;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.StringWriter;
+import java.nio.charset.Charset;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.NoSuchAlgorithmException;
+import java.security.PublicKey;
 import java.util.*;
 
 import static org.junit.Assert.*;
@@ -41,6 +52,12 @@ public class IssuersServiceTest {
 
     @Mock
     public RestApiClient restApiClient;
+
+    @Mock
+    JoseUtil joseUtil;
+
+    @Spy
+    ObjectMapper objectMapper = new ObjectMapper();
 
     List<String> issuerConfigRelatedFields = List.of("additional_headers", "authorization_endpoint","authorization_audience", "token_endpoint", "proxy_token_endpoint", "credential_endpoint", "credential_audience", "redirect_uri");
 
@@ -245,5 +262,41 @@ public class IssuersServiceTest {
         // Assertion
         assertTrue(mergedHtml.contains("PDF"));
     }
+
+    @Test
+    public void shouldGeneratePDFWithQRCode() throws Exception {
+        String accessToken = "";
+        IssuerDTO issuerDTO = getIssuerDTO("Issuer1", issuerConfigRelatedFields);
+        CredentialsSupportedResponse credentialsSupportedResponse = getCredentialSupportedResponse("VC2");
+        Mockito.when(joseUtil.getPublicKeyString(any(),any(),any(),any())).thenReturn(generateTestPublicKey());
+        Mockito.when(joseUtil.generateJwt(any(), any(), any(), any(), any(), any(), any(), any())).thenReturn("test token");
+        Mockito.when(restApiClient.postApi(any(), any(), any(), any(), any())).thenReturn(generateTestVCResponse());
+        String credentialTemplate = IOUtils.resourceToString("/templates/CredentialTemplate.html", Charset.defaultCharset());
+        Mockito.when(utilities.getCredentialSupportedTemplateString()).thenReturn(credentialTemplate);
+        ByteArrayInputStream pdfBytes = issuersService.generatePdfForVerifiableCredentials(accessToken, issuerDTO, credentialsSupportedResponse, "");
+        Assert.assertNotNull(pdfBytes);
+    }
+
+    private VCCredentialResponse generateTestVCResponse() {
+        return VCCredentialResponse.builder().credential(
+                VCCredentialProperties.builder().credentialSubject(
+                        Map.of("name", "test")
+                ).build()
+        ).build();
+    }
+
+    private PublicKey generateTestPublicKey() {
+
+        try {
+            KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
+            keyGen.initialize(2048);
+
+            KeyPair keyPair = keyGen.generateKeyPair();
+            return keyPair.getPublic();
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
 
 }
