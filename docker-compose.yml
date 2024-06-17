@@ -7,6 +7,7 @@ services:
     volumes:
       - ./src/main/resources/mimoto-issuers-config.json:/home/mosip/mimoto-issuers-config.json
       - ./src/main/resources/templates/CredentialTemplate.html:/home/mosip/CredentialTemplate.html
+      - ./docker-compose/client-identity.p12:/home/mosip/certs/client-identity.p12
     environment:
       - active_profile_env=local
       - issuers_config_path=file:mimoto-issuers-config.json
